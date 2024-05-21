@@ -8,7 +8,7 @@ version = "0.0.0"
 authors = [
   { name="Joey Parrish", email="joey.parrish@gmail.com" },
 ]
-description = "Drive the Krikzz FlashKit Programmer MD from the command-line."
+description = "Drive the Krikzz FlashKit Programmer MD to flash Sega Genesis carts from the command-line."
 readme = "README.md"
 # This comes from the usage of require=True in argparse's add_subparsers()
 requires-python = ">=3.7"

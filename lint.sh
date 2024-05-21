@@ -3,6 +3,9 @@
 set -e
 set -x
 
+# Requires flake8 for linting.
+# "apt install flake8" or "pip install flake8"
+
 # Start with just syntax errors and undefined names
 flake8 . --count \
   --select=E9,F63,F7,F82 \

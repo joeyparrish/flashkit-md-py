@@ -28,16 +28,15 @@
 import argparse
 import datetime
 import hashlib
-import sys
 
 from device import FlashKitDevice
 from cart import Cart, TIME_REGISTER
 
 
-READ_BLOCK_SIZE =        (32 << 10) # 32 kB
-WRITE_BLOCK_SIZE =        (4 << 10) #  4 kB
-ROM_SIZE_MULTIPLE =      (64 << 10) # 64 kB
-FLASH_ERASE_BLOCK_SIZE = (64 << 10) # 64 kB
+READ_BLOCK_SIZE =        (32 << 10)  # 32 kB
+WRITE_BLOCK_SIZE =        (4 << 10)  #  4 kB
+ROM_SIZE_MULTIPLE =      (64 << 10)  # 64 kB
+FLASH_ERASE_BLOCK_SIZE = (64 << 10)  # 64 kB
 
 OPEN_EVERDRIVE_SIGNATURE = b"OPEN-EVERDRIVE"
 OPEN_EVERDRIVE_SIGNATURE_OFFSET = 0x120
@@ -149,9 +148,7 @@ def readRom(port, path):
   return True
 
 
-def __writeRom(port, path):
-  device = FlashKitDevice(port)
-  cart = Cart(device)
+def __writeRom(device, path):
   device.setDelay(0)
 
   with open(path, 'rb') as f:
@@ -185,7 +182,7 @@ def __writeRom(port, path):
   for offset in range(0, rom_size, WRITE_BLOCK_SIZE):
     progress = offset / rom_size
     print('\rWrite progress: {:.1f}%'.format(progress * 100), end='')
-    device.flashWrite(rom[offset:offset+WRITE_BLOCK_SIZE])
+    device.flashWrite(rom[offset:offset + WRITE_BLOCK_SIZE])
 
   print('\rWrite complete!      ')
 
@@ -204,11 +201,12 @@ def __writeRom(port, path):
 def writeRom(port, path):
   # Separated error-handling from the work, for readability
   try:
-    __writeRom(port, path)
+    device = FlashKitDevice(port)
+    __writeRom(device, path)
   except Exception as e:
     try:
       device.flashResetBypass()
-    except:
+    except Exception:
       pass
 
     # After resetting the device, raise the original exception

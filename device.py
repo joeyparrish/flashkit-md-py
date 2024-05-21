@@ -161,10 +161,13 @@ class FlashKitDevice(object):
       self.__write2(CMD_LEN, write_words)
       self.__write1(CMD_WR | PAR_INC)
 
-      written = self.serial.write(data[offset:offset+write_bytes])
+      end_offset = offset + write_bytes
+      written = self.serial.write(data[offset:end_offset])
+
       if written < write_bytes:
         raise RuntimeError("Short write: {} vs {}".format(
             written, write_bytes))
+
       length -= write_bytes
       offset += write_bytes
 
@@ -176,10 +179,10 @@ class FlashKitDevice(object):
 
   def flashErase(self, addr):
     self.writeUint16(0x555 * 2, 0xaa)
-    self.writeUint16(0x2aa * 2, 0x55);
-    self.writeUint16(0x555 * 2, 0x80);
-    self.writeUint16(0x555 * 2, 0xaa);
-    self.writeUint16(0x2aa * 2, 0x55);
+    self.writeUint16(0x2aa * 2, 0x55)
+    self.writeUint16(0x555 * 2, 0x80)
+    self.writeUint16(0x555 * 2, 0xaa)
+    self.writeUint16(0x2aa * 2, 0x55)
 
     addr >>= 1  # byte to word
     for i in range(8):
@@ -198,13 +201,13 @@ class FlashKitDevice(object):
 
   def flashUnlockBypass(self):
     self.writeUint8(0x555 * 2, 0xaa)
-    self.writeUint8(0x2aa * 2, 0x55);
-    self.writeUint8(0x555 * 2, 0x20);
+    self.writeUint8(0x2aa * 2, 0x55)
+    self.writeUint8(0x555 * 2, 0x20)
 
   def flashResetBypass(self):
-    self.writeUint16(0, 0xf0);
-    self.writeUint8(0, 0x90);
-    self.writeUint8(0, 0x00);
+    self.writeUint16(0, 0xf0)
+    self.writeUint8(0, 0x90)
+    self.writeUint8(0, 0x00)
 
   def flashWrite(self, data):
     # NOTE: This is much simpler than the original, and does not suffer in
@@ -212,7 +215,7 @@ class FlashKitDevice(object):
     for i in range(0, len(data), 2):
       self.__write2(CMD_WR | PAR_SINGE | PAR_MODE8, 0xA0)
       self.__write1(CMD_WR | PAR_SINGE | PAR_INC)
-      self.serial.write(data[i:i+2])
+      self.serial.write(data[i:i + 2])
       self.__write1(CMD_RY)
 
   def __getID(self):

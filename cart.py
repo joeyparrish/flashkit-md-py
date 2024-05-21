@@ -19,7 +19,10 @@
 
 
 # FlashKit upstream only accepts these characters in a ROM's name field
-VALID_ROM_NAME_CHARACTERS = b""" !()_-:/.[]|&'`0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"""
+VALID_ROM_NAME_CHARACTERS = (
+    b""" !()_-:/.[]|&'`""" +
+    b'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+)
 
 # Bank-switching happens by writing to addresses in this space.  It corresponds
 # to the /TIME pin on the cartridge.
@@ -63,7 +66,7 @@ class Cart(object):
     first_word = self.device.readUint16(SRAM_BASE)
     # Write the inverse to this address, then read it back.
     modified_word = first_word ^ 0xffff
-    self.device.writeUint16(SRAM_BASE, first_word ^ 0xffff)
+    self.device.writeUint16(SRAM_BASE, modified_word)
     stored_word = self.device.readUint16(SRAM_BASE)
 
     # Now restore the original, so we don't break a saved game.
@@ -87,40 +90,7 @@ class Cart(object):
 
     if self.ramAvailable():
       has_ram = True
-      has_extra_rom = True
-
-      # I can't find any explanation of this logic, nor does it align with any
-      # docs I can find on Sega carts, SRAM, or bank switching.  I assume for
-      # now it's logic specific to Krikzz flashkit, so I have ported it
-      # faithfully.  But it seems fishy.
-
-      self.device.writeUint16(TIME_REGISTER, 0x0000)
-
-      self.device.setAddr(SRAM_BASE)
-      sector0 = self.device.read(SECTOR_SIZE)
-
-      self.device.setAddr(SRAM_BASE)
-      sector = self.device.read(SECTOR_SIZE)
-
-      if sector != sector0:
-        has_extra_rom = False
-
-      if has_extra_rom:
-        has_extra_rom = False
-        self.device.setAddr(SRAM_BASE + SIXTY_FOUR_K)
-        sector = self.device.read(SECTOR_SIZE)  # [sic]
-
-        self.device.writeUint16(TIME_REGISTER, 0x0000)
-        self.device.setAddr(SRAM_BASE)
-        sector = self.device.read(SECTOR_SIZE)  # [sic]
-
-        # NOTE: Both reads above go to "sector" in the original code by Krikzz,
-        # even though it seems like one should probably be "sector0".  Because
-        # the logic and purpose is unclear, I can't tell if this is a bug or
-        # not.
-
-        if sector != sector0:
-          has_extra_rom = True
+      has_extra_rom = self.__detectExtraRom()
 
     max_rom_size = FOUR_MB
     if has_ram and not has_extra_rom:
@@ -179,7 +149,8 @@ class Cart(object):
 
       # Break the search if the data you wrote wasn't reflected back.
       # This indicates we reached an address that isn't SRAM.
-      if stored_byte != original_byte ^ 0xff: break
+      if stored_byte != original_byte ^ 0xff:
+        break
 
       # Break the search if we changed the first byte of SRAM.
       # This indicates we wrapped around in SRAM address space.
@@ -187,7 +158,8 @@ class Cart(object):
       # If original_byte == first_byte ^ 0xff, then the modified byte we wrote
       # at this address will happen to match the original first byte, and this
       # check will not know we actually wrapped around.
-      if stored_first_byte != first_byte: break
+      if stored_first_byte != first_byte:
+        break
 
       ram_size *= 2
 
@@ -216,7 +188,7 @@ class Cart(object):
 
   def __parseRomName(self, header, offset):
     # Strip off trailing spaces
-    name = header[offset:offset+48].strip(b' \x00\xff')
+    name = header[offset:offset + 48].strip(b' \x00\xff')
 
     # Reject characters not in the valid ROM name set
     for x in name:
@@ -284,11 +256,13 @@ class Cart(object):
       sector = self.device.read(SECTOR_SIZE)
       # If this sector matches the first sector, we wrapped around in the ROM's
       # actual address space.  So this is the length of the ROM.
-      if sector == sector0: break
+      if sector == sector0:
+        break
 
       # Double the distance from the base and check again.
       length *= 2
-      if length >= max_length: break
+      if length >= max_length:
+        break
 
     # If the ROM wrapped after just one check, return 0.
     # It's unclear why we need this check.
@@ -296,3 +270,41 @@ class Cart(object):
       return 0
 
     return length
+
+  def __detectExtraRom(self):
+    # I can't find any explanation of this logic, nor does it align with any
+    # docs I can find on Sega carts, SRAM, or bank switching.  I assume for
+    # now it's logic specific to Krikzz flashkit, so I have ported it
+    # faithfully.  But it seems fishy.
+
+    self.device.writeUint16(TIME_REGISTER, 0x0000)
+
+    self.device.setAddr(SRAM_BASE)
+    sector0 = self.device.read(SECTOR_SIZE)
+
+    self.device.setAddr(SRAM_BASE)
+    sector = self.device.read(SECTOR_SIZE)
+
+    has_extra_rom = True
+
+    if sector != sector0:
+      has_extra_rom = False
+
+    if has_extra_rom:
+      has_extra_rom = False
+      self.device.setAddr(SRAM_BASE + SIXTY_FOUR_K)
+      sector = self.device.read(SECTOR_SIZE)  # [sic]
+
+      self.device.writeUint16(TIME_REGISTER, 0x0000)
+      self.device.setAddr(SRAM_BASE)
+      sector = self.device.read(SECTOR_SIZE)  # [sic]
+
+      # NOTE: Both reads above go to "sector" in the original code by Krikzz,
+      # even though it seems like one should probably be "sector0".  Because
+      # the logic and purpose is unclear, I can't tell if this is a bug or
+      # not.
+
+      if sector != sector0:
+        has_extra_rom = True
+
+    return has_extra_rom

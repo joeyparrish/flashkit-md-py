@@ -115,7 +115,7 @@ class Cart(object):
         length += length2
 
     if trust_header and rom_end_address < length:
-      return rom_end_address
+      return rom_end_address + 1
 
     return length
 

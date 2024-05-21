@@ -12,14 +12,16 @@ permissions:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    # Ubuntu 22.04 is the newest version that has Python 3.7 for testing.
+    runs-on: ubuntu-22.04
+
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Python 3.5
-      uses: actions/setup-python@v3
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v5
       with:
-        python-version: "3.5"
+        python-version: "3.7"
 
     - name: Install dependencies
       run: |

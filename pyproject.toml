@@ -10,7 +10,8 @@ authors = [
 ]
 description = "Drive the Krikzz FlashKit Programmer MD from the command-line."
 readme = "README.md"
-requires-python = ">=3.4"
+# This comes from the usage of require=True in argparse's add_subparsers()
+requires-python = ">=3.7"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3",

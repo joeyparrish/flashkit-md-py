@@ -37,9 +37,7 @@ jobs:
     - name: Set the version number
       run: |
         sed -e 's/version = ".*"/version = "${{ github.ref_name }}"/' -i pyproject.toml
-        # FIXME: Debugging before actual first publication
-        cat pyproject.toml
-        exit 1
+        grep version pyproject.toml
 
     - name: Build with Hatchling
       run: hatchling build

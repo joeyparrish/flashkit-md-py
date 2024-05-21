@@ -15,9 +15,11 @@ Main motivations for this rewrite:
  - Command-line operation
  - Runs everywhere with Python 3 instead of .NET/Mono
 
-Improvements over the original:
+Functional improvements over the original:
 
- - ROM region code parsing is more detailed and readable
+ - ROM region code parsing is more detailed, accurate, and readable
+ - Can tell the difference between ROM size and Flash chip size,
+   avoiding oversized ROM dumps from flash carts
 
 
 ## License

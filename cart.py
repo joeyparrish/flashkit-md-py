@@ -76,7 +76,12 @@ class Cart(object):
     # If it's SRAM, we expect stored_byte to be the inverse of first_byte.
     return stored_byte == first_byte ^ 0xff
 
-  def romSize(self):
+  def romSize(self, trust_header):
+    self.device.setAddr(0)
+    header = self.device.read(512)
+
+    rom_end_address = int.from_bytes(header[0x1a4:0x1a8], 'big')
+
     has_ram = False
     has_extra_rom = False
 
@@ -138,6 +143,9 @@ class Cart(object):
 
       if length2 > HALF_MB:
         length += length2
+
+    if trust_header and rom_end_address < length:
+      return rom_end_address
 
     return length
 

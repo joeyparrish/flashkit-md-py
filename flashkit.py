@@ -107,7 +107,8 @@ def check(port):
     return False
 
   print('ROM name: ' + cart.romName())
-  print('ROM chip size: ' + __formatSize(cart.romSize()))
+  print('ROM chip size: ' + __formatSize(cart.romSize(trust_header=False)))
+  print('ROM size: ' + __formatSize(cart.romSize(trust_header=True)))
   print('RAM size: ' + __formatSize(cart.ramSize()))
   return True
 
@@ -126,7 +127,7 @@ def readRom(port, path):
     path = name + '.bin'
     print('Default output: ' + path)
 
-  rom_size = cart.romSize()
+  rom_size = cart.romSize(trust_header=True)
   device.writeUint16(TIME_REGISTER, 0x0000)
   device.setAddr(0)
 
@@ -142,6 +143,7 @@ def readRom(port, path):
 
   print('\rRead complete!      ')
 
+  print('Read {} ROM'.format(__formatSize(rom_size)))
   print('MD5: ' + md5.hexdigest())
 
   return True

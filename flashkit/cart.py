@@ -20,7 +20,7 @@
 
 from typing import Optional
 
-from device import FlashKitDevice
+from .device import FlashKitDevice
 
 
 # FlashKit upstream only accepts these characters in a ROM's name field

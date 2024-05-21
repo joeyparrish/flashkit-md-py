@@ -22,6 +22,13 @@ Functional improvements over the original:
    avoiding oversized ROM dumps from flash carts
 
 
+## Installation
+
+```
+python3 -m pip install flashkit
+```
+
+
 ## License
 
 Released under GPL v3.  See [LICENSE.md](LICENSE.md).
@@ -37,4 +44,5 @@ v3.
    - datetime library (included with Python)
    - hashlib library (included with Python)
    - typing library (included with Python)
-   - serial library (Ubuntu package `python3-serial` or `pip3 install pyserial`)
+   - serial library (Ubuntu package `python3-serial` or
+                     `python3 -m pip install pyserial` for development)

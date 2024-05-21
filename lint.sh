@@ -22,4 +22,4 @@ flake8 . --count \
   --statistics
 
 # Now check types with mypy
-mypy --strict *.py
+mypy --strict flashkit/*.py

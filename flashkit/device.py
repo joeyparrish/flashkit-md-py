@@ -20,6 +20,7 @@
 
 import serial
 import serial.tools.list_ports
+
 from typing import Optional
 
 # The original C# version used SerialPort() without a baud rate.  Microsoft

@@ -29,8 +29,8 @@ import argparse
 import datetime
 import hashlib
 
-from device import FlashKitDevice
-from cart import Cart, TIME_REGISTER
+from .device import FlashKitDevice
+from .cart import Cart, TIME_REGISTER
 
 
 READ_BLOCK_SIZE =        (32 << 10)  # 32 kB

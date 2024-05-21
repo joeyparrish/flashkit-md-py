@@ -36,4 +36,4 @@ v3.
    - argparse library (included with Python)
    - datetime library (included with Python)
    - hashlib library (included with Python)
-   - serial library (Ubuntu package python3-serial or pip install pyserial)
+   - serial library (Ubuntu package `python3-serial` or `pip3 install pyserial`)

@@ -45,7 +45,7 @@ OPEN_EVERDRIVE_BANK_VALUE = 0x0404
 OPEN_EVERDRIVE_DATETIME_OFFSET = 0x1c8
 
 
-def __formatSize(size):
+def __formatSize(size: int) -> str:
   if size < 1024:
     return str(size) + ' B'
 
@@ -55,13 +55,13 @@ def __formatSize(size):
   return str(size >> 20) + ' MB'
 
 
-def __initOpenEverDrive(device, rom):
+def __initOpenEverDrive(device: FlashKitDevice, rom: bytes) -> bytes:
   # Special logic for writing OpenEverDrive ROMs
   open_ed_start = OPEN_EVERDRIVE_SIGNATURE_OFFSET
   open_ed_end = open_ed_start + len(OPEN_EVERDRIVE_SIGNATURE)
 
   if rom[open_ed_start:open_ed_end] != OPEN_EVERDRIVE_SIGNATURE:
-    return
+    return rom
 
   # Initialize the Open EverDrive ROM bank
   device.writeUint16(OPEN_EVERDRIVE_BANK_REGISTER, OPEN_EVERDRIVE_BANK_VALUE)
@@ -69,15 +69,23 @@ def __initOpenEverDrive(device, rom):
   # Apply the date and time to the ROM
   now = datetime.datetime.now()
   date = now.day | (now.month << 5) | ((now.year - 1980) << 9)
-  time = (now.second / 2) | (now.minute << 5) | (now.hour << 11)
+  time = (now.second // 2) | (now.minute << 5) | (now.hour << 11)
 
-  rom[OPEN_EVERDRIVE_DATETIME_OFFSET + 0] = (date & 0xff).to_bytes(1, 'big')
-  rom[OPEN_EVERDRIVE_DATETIME_OFFSET + 1] = (date >> 8).to_bytes(1, 'big')
-  rom[OPEN_EVERDRIVE_DATETIME_OFFSET + 2] = (time & 0xff).to_bytes(1, 'big')
-  rom[OPEN_EVERDRIVE_DATETIME_OFFSET + 3] = (time >> 8).to_bytes(1, 'big')
+  datestamp_bytes = (
+    (date & 0xff).to_bytes(1, 'big') +
+    (date >> 8).to_bytes(1, 'big') +
+    (time & 0xff).to_bytes(1, 'big') +
+    (time >> 8).to_bytes(1, 'big')
+  )
+
+  return (
+      rom[:OPEN_EVERDRIVE_DATETIME_OFFSET] +
+      datestamp_bytes +
+      rom[OPEN_EVERDRIVE_DATETIME_OFFSET + 4:]
+  )
 
 
-def __verify(data1, data2):
+def __verify(data1: bytes, data2: bytes) -> bool:
   if data2 == data1:
     print('\rVerify complete!      ')
     print('MD5: ' + hashlib.md5(data1).hexdigest())
@@ -95,7 +103,7 @@ def __verify(data1, data2):
   return False
 
 
-def check(port):
+def check(port: str) -> bool:
   device = FlashKitDevice(port)
   cart = Cart(device)
   device.setDelay(1)
@@ -112,7 +120,7 @@ def check(port):
   return True
 
 
-def readRom(port, path):
+def readRom(port: str, path: str) -> bool:
   device = FlashKitDevice(port)
   cart = Cart(device)
   device.setDelay(1)
@@ -148,7 +156,7 @@ def readRom(port, path):
   return True
 
 
-def __writeRom(device, path):
+def __writeRom(device: FlashKitDevice, path: str) -> bool:
   device.setDelay(0)
 
   with open(path, 'rb') as f:
@@ -165,7 +173,7 @@ def __writeRom(device, path):
 
   print('Writing {} ROM from {}'.format(__formatSize(rom_size), path))
 
-  __initOpenEverDrive(device, rom)
+  rom = __initOpenEverDrive(device, rom)
 
   device.flashResetBypass()
 
@@ -198,11 +206,11 @@ def __writeRom(device, path):
   return __verify(rom, rom2)
 
 
-def writeRom(port, path):
+def writeRom(port: str, path: str) -> bool:
   # Separated error-handling from the work, for readability
   try:
     device = FlashKitDevice(port)
-    __writeRom(device, path)
+    return __writeRom(device, path)
   except Exception as e:
     try:
       device.flashResetBypass()
@@ -213,7 +221,7 @@ def writeRom(port, path):
     raise e
 
 
-def readRam(port, path):
+def readRam(port: str, path: str) -> bool:
   device = FlashKitDevice(port)
   cart = Cart(device)
   device.setDelay(1)
@@ -235,7 +243,7 @@ def readRam(port, path):
   print('RAM size: ' + __formatSize(ram_size))
 
   with open(path, 'wb') as f:
-    ram = cart.getRam()
+    ram = cart.readRam()
     f.write(ram)
 
   print('RAM dump complete')
@@ -244,7 +252,7 @@ def readRam(port, path):
   return True
 
 
-def writeRam(port, path):
+def writeRam(port: str, path: str) -> bool:
   device = FlashKitDevice(port)
   cart = Cart(device)
   device.setDelay(1)
@@ -260,14 +268,14 @@ def writeRam(port, path):
   copy_length = min(len(ram), ram_size)
   copy_length &= ~1  # Clip off any odd bytes
 
-  device.writeRam(ram[0:copy_length])
+  cart.writeRam(ram[0:copy_length])
   print('RAM updated')
 
-  ram2 = device.getRam(copy_length)
+  ram2 = cart.readRam(copy_length)
   return __verify(ram, ram2)
 
 
-def main():
+def main() -> None:
   parser = argparse.ArgumentParser(
       prog='flashkit',
       description=__doc__,

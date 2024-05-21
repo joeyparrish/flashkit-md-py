@@ -3,8 +3,8 @@
 set -e
 set -x
 
-# Requires flake8 for linting.
-# "apt install flake8" or "pip install flake8"
+# Requires flake8 for linting and mypy for type checks.
+# "apt install flake8 mypy" or "pip install flake8 mypy"
 
 # Start with just syntax errors and undefined names
 flake8 . --count \
@@ -20,3 +20,6 @@ flake8 . --count \
   --ignore=E126,E128,E221,E222,E262,W504 \
   --show-source \
   --statistics
+
+# Now check types with mypy
+mypy --strict *.py

@@ -18,6 +18,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from typing import Optional
+
+from device import FlashKitDevice
+
+
 # FlashKit upstream only accepts these characters in a ROM's name field
 VALID_ROM_NAME_CHARACTERS = (
     b""" !()_-:/.[]|&'`""" +
@@ -43,10 +48,10 @@ FOUR_MB  = 0x400000
 
 
 class Cart(object):
-  def __init__(self, device):
-    self.device = device
+  def __init__(self, device: FlashKitDevice):
+    self.device: FlashKitDevice = device
 
-  def romName(self):
+  def romName(self) -> str:
     self.device.setAddr(0)
     header = self.device.read(512)
 
@@ -58,7 +63,7 @@ class Cart(object):
     name += ' (' + self.__parseRomRegion(header) + ')'
     return name
 
-  def ramAvailable(self):
+  def ramAvailable(self) -> bool:
     # Activates SRAM in the cart's mapper, if available
     self.device.writeUint16(TIME_REGISTER, 0xffff)
 
@@ -79,7 +84,7 @@ class Cart(object):
     # If it's SRAM, we expect stored_byte to be the inverse of first_byte.
     return stored_byte == first_byte ^ 0xff
 
-  def romSize(self, trust_header):
+  def romSize(self, trust_header: bool) -> int:
     self.device.setAddr(0)
     header = self.device.read(512)
 
@@ -119,7 +124,7 @@ class Cart(object):
 
     return length
 
-  def ramSize(self):
+  def ramSize(self) -> int:
     if not self.ramAvailable():
       return 0
 
@@ -169,7 +174,7 @@ class Cart(object):
     # some reason.  It is unclear what the original thinking was.
     return ram_size
 
-  def readRam(self, max_size=None):
+  def readRam(self, max_size: Optional[int] = None) -> bytes:
     # Unused in the original (getRam in Cart.cs), but ported for and used here
     # to keep some of these details out of flashkit.py commands.  Untested.
 
@@ -181,12 +186,12 @@ class Cart(object):
     self.device.setAddr(SRAM_BASE)
     return self.device.read(ram_size)
 
-  def writeRam(self, ram):
+  def writeRam(self, ram: bytes) -> None:
     self.device.writeUint16(TIME_REGISTER, 0xffff)
     self.device.setAddr(SRAM_BASE)
     self.device.write(ram)
 
-  def __parseRomName(self, header, offset):
+  def __parseRomName(self, header: bytes, offset: int) -> Optional[str]:
     # Strip off trailing spaces
     name = header[offset:offset + 48].strip(b' \x00\xff')
 
@@ -197,7 +202,7 @@ class Cart(object):
 
     return name.decode('utf-8') or None
 
-  def __parseRomRegion(self, header):
+  def __parseRomRegion(self, header: bytes) -> str:
     # NOTE: This diverges from the original, which was undocumented, hard to
     # follow, and hacky.  There were no comments whatsoever in the original.
     # The original version called any multi-region ROM a "World" ROM with code
@@ -238,7 +243,7 @@ class Cart(object):
 
     return regions
 
-  def __checkRomSize(self, base_addr, max_length):
+  def __checkRomSize(self, base_addr: int, max_length: int) -> int:
     base_length = 0x8000
     length = 0x8000
 
@@ -271,7 +276,7 @@ class Cart(object):
 
     return length
 
-  def __detectExtraRom(self):
+  def __detectExtraRom(self) -> bool:
     # I can't find any explanation of this logic, nor does it align with any
     # docs I can find on Sega carts, SRAM, or bank switching.  I assume for
     # now it's logic specific to Krikzz flashkit, so I have ported it

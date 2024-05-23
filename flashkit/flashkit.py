@@ -24,6 +24,10 @@
 #   Author: krikzz <biokrik@gmail.com>
 #   Date:   Wed Dec 20 01:37:44 2023 +0100
 
+"""
+Drive the Krikzz FlashKit Programmer MD from the command-line to rewrite Sega
+Genesis / MegaDrive flash carts.
+"""
 
 import argparse
 import datetime
@@ -285,7 +289,7 @@ def main() -> None:
 
   subparsers = parser.add_subparsers(
       title='available commands',
-      metavar='command', dest='command', required=True)
+      metavar='command', dest='command')
 
   check_parser = subparsers.add_parser('check',
       help='Print info about the attached cart')
@@ -321,8 +325,14 @@ def main() -> None:
       func=lambda args: writeRam(args.port, args.input))
 
   args = parser.parse_args()
-  # Run the "func" associated with whichever subcommand was given:
-  args.func(args)
+
+  if args.command:
+    # Run the "func" associated with whichever subcommand was given:
+    args.func(args)
+  else:
+    # Explicitly print help, instead of making command required.
+    # This way, we see the full help instead of the short version
+    parser.print_help()
 
 
 if __name__ == '__main__':

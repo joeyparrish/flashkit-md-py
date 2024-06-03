@@ -53,6 +53,16 @@ PAR_INC    = 128
 
 IO_BLOCK_SIZE = 0x10000
 
+# NOTE: Krikzz Flash Cart MD uses a M29W320ET chip.
+# Weird sequences of writes are commands from table 4 at the end of section 4:
+# https://www.digikey.com/en/htmldatasheets/production/258014/0/0/1/m29w320db-m29w320dt
+# These families of chip appear to be compatible with the official Krikzz carts:
+#  - S29 series from Cypress / Infineon
+#  - IS29 series from ISSI
+# These are NOT compatible:
+#  - MX29 series from Macronix (missing bypass mode)
+#  - AS29 series from Alliance Memory (missing bypass mode)
+
 
 class FlashKitNotFoundException(Exception):
   def __init__(self, device_path: Optional[str] = None):
@@ -110,26 +120,17 @@ class FlashKitDevice(object):
     self.__write2(CMD_DELAY, delay & 0xff)
 
   def readUint16(self, addr: int) -> int:
-    addr >>= 1  # byte to word
-    self.__write2(CMD_ADDR, addr >> 16)
-    self.__write2(CMD_ADDR, addr >> 8)
-    self.__write2(CMD_ADDR, addr)
+    self.setAddr(addr)
     self.__write1(CMD_RD | PAR_SINGE)
     return self.__read2()
 
   def writeUint16(self, addr: int, value: int) -> None:
-    addr >>= 1  # byte to word
-    self.__write2(CMD_ADDR, addr >> 16)
-    self.__write2(CMD_ADDR, addr >> 8)
-    self.__write2(CMD_ADDR, addr)
+    self.setAddr(addr)
     self.__write1(CMD_WR | PAR_SINGE)
     self.__writeWord(value)
 
   def writeUint8(self, addr: int, value: int) -> None:
-    addr >>= 1  # byte to word
-    self.__write2(CMD_ADDR, addr >> 16)
-    self.__write2(CMD_ADDR, addr >> 8)
-    self.__write2(CMD_ADDR, addr)
+    self.setAddr(addr)
     self.__write1(CMD_WR | PAR_SINGE | PAR_MODE8)
     self.__write1(value)
 
@@ -189,13 +190,10 @@ class FlashKitDevice(object):
     self.writeUint16(0x555 * 2, 0xaa)
     self.writeUint16(0x2aa * 2, 0x55)
 
-    addr >>= 1  # byte to word
     for i in range(8):
-      self.__write2(CMD_ADDR, addr >> 16)
-      self.__write2(CMD_ADDR, addr >> 8)
-      self.__write2(CMD_ADDR, addr)
+      self.setAddr(addr)
       self.__write2(CMD_WR | PAR_SINGE | PAR_MODE8, 0x30)
-      addr += 4096
+      addr += 8192
 
     self.flashRY()
 

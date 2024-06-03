@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+#
 # FlashKit MD Python Client
 #
 # Copyright (C) 2024 Joey Parrish
@@ -18,17 +20,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from .device import FlashKitDevice
-from .cart import Cart
-from .flashkit import check, readRom, writeRom, readRam, writeRam, main
+# This is just a frontend to run the CLI.  You get something similar installed
+# automatically by pip, but if you're running the CLI from your git working
+# directory, you want to use this script.
 
-__all__ = [
-  'FlashKitDevice',
-  'Cart',
-  'check',
-  'readRom',
-  'writeRom',
-  'readRam',
-  'writeRam',
-  'main',
-]
+import sys
+
+from flashkit.flashkit import main
+
+if __name__ == '__main__':
+    sys.argv[0] = 'flashkit'
+    sys.exit(main())

@@ -102,7 +102,7 @@ def __verify(data1: bytes, data2: bytes) -> bool:
 
   for i in range(len(data1)):
     if data1[i] != data2[i]:
-      print('First failed byte offset {} is {:2x}, should be {:2x}'.format(
+      print('First failed byte offset {} is {:02x}, should be {:02x}'.format(
           i, data2[i], data1[i]))
       break
   return False

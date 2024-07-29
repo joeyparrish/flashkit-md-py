@@ -68,7 +68,7 @@ CFI_EXPECTED_DATA = b'\x00\x51\x00\x52\x00\x59'
 
 
 class FlashKitNotFoundException(Exception):
-  def __init__(self, device_path: Optional[str] = None):
+  def __init__(self, device_path: Optional[str] = None) -> None:
     if device_path:
       message = 'FlashKit MD not found at {}'.format(device_path)
     else:
@@ -77,7 +77,7 @@ class FlashKitNotFoundException(Exception):
 
 
 class FlashChipNotFoundException(Exception):
-  def __init__(self):
+  def __init__(self) -> None:
     message = 'CFI failed, flash not detected!'
     super().__init__(message)
 

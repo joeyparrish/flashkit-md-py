@@ -287,16 +287,19 @@ def writeRam(port: str, path: str) -> bool:
 def read16(port: str, addr: int) -> bool:
   device = FlashKitDevice(port)
   print('{:4x}'.format(device.readUint16(addr)))
+  return True
 
 
 def write16(port: str, addr: int, value: int) -> bool:
   device = FlashKitDevice(port)
   device.writeUint16(addr, value)
+  return True
 
 
 def write8(port: str, addr: int, value: int) -> bool:
   device = FlashKitDevice(port)
   device.writeUint8(addr, value)
+  return True
 
 
 def main() -> None:

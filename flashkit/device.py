@@ -53,6 +53,9 @@ PAR_INC    = 128
 
 IO_BLOCK_SIZE = 0x10000
 
+# The literal bytes 'Q', 'R', 'Y', as words
+CFI_EXPECTED_DATA = b'\x00\x51\x00\x52\x00\x59'
+
 # NOTE: Krikzz Flash Cart MD uses a M29W320ET chip.
 # Weird sequences of writes are commands from table 4 at the end of section 4:
 # https://www.digikey.com/en/htmldatasheets/production/258014/0/0/1/m29w320db-m29w320dt
@@ -70,6 +73,12 @@ class FlashKitNotFoundException(Exception):
       message = 'FlashKit MD not found at {}'.format(device_path)
     else:
       message = 'FlashKit MD not found on any serial port!'
+    super().__init__(message)
+
+
+class FlashChipNotFoundException(Exception):
+  def __init__(self):
+    message = 'CFI failed, flash not detected!'
     super().__init__(message)
 
 
@@ -103,6 +112,7 @@ class FlashKitDevice(object):
     self.serial.timeout = 0.2  # seconds
     self.serial.write_timeout = 0.2  # seconds
 
+    # Get the FlashKit programmer's device ID.
     id = self.__getID()
     if (id & 0xff) == (id >> 8) and id != 0:
       # A valid ID.
@@ -112,6 +122,20 @@ class FlashKitDevice(object):
       self.setDelay(0)
     else:
       raise FlashKitNotFoundException(self.device_path)
+
+  def checkForFlash(self) -> None:
+    # Check Common Flash Interface (CFI) to ensure we can speak through the
+    # FlashKit programmer to the flash chip on the cartridge.
+    self.flashQueryMode()
+    self.setAddr(0x20)
+
+    cfi_data = self.read(6)
+
+    # Reset to normal read mode.
+    self.flashReset()
+
+    if cfi_data != CFI_EXPECTED_DATA:
+      raise FlashChipNotFoundException()
 
   def disconnect(self) -> None:
     self.serial.close()
@@ -208,9 +232,15 @@ class FlashKitDevice(object):
     self.writeUint8(0x555 * 2, 0x20)
 
   def flashResetBypass(self) -> None:
-    self.writeUint16(0, 0xf0)
+    self.flashReset()
     self.writeUint8(0, 0x90)
     self.writeUint8(0, 0x00)
+
+  def flashQueryMode(self) -> None:
+    self.writeUint8(0x55 * 2, 0x98)
+
+  def flashReset(self) -> None:
+    self.writeUint16(0, 0xf0)
 
   def flashWrite(self, data: bytes) -> None:
     # NOTE: This is much simpler than the original, and does not suffer in

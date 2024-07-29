@@ -162,6 +162,7 @@ def readRom(port: str, path: str) -> bool:
 
 def __writeRom(device: FlashKitDevice, path: str) -> bool:
   device.setDelay(0)
+  device.checkForFlash()
 
   with open(path, 'rb') as f:
     rom = f.read()

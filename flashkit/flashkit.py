@@ -32,6 +32,7 @@ Genesis / MegaDrive flash carts.
 import argparse
 import datetime
 import hashlib
+import math
 
 from .device import FlashKitDevice
 from .cart import Cart, TIME_REGISTER
@@ -54,9 +55,9 @@ def __formatSize(size: int) -> str:
     return str(size) + ' B'
 
   if size < 1024 * 1024:
-    return str(size >> 10) + ' kB'
+    return str(math.ceil(size / 1024)) + ' kB'
 
-  return str(size >> 20) + ' MB'
+  return str(math.ceil(size / 1024 / 1024)) + ' MB'
 
 
 def __initOpenEverDrive(device: FlashKitDevice, rom: bytes) -> bytes:

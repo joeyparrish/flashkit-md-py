@@ -125,21 +125,24 @@ def check(port: str) -> bool:
   return True
 
 
-def readRom(port: str, path: str) -> bool:
+def readRom(port: str, path: str, rom_size: int) -> bool:
   device = FlashKitDevice(port)
   cart = Cart(device)
   device.setDelay(1)
 
-  name = cart.romName()
-  if not name:
-    print('Cart not found!')
-    return False
-
   if not path:
+    name = cart.romName()
+    if not name:
+      print('Cart not found!')
+      return False
+
     path = name + '.bin'
     print('Default output: ' + path)
 
-  rom_size = cart.romSize(trust_header=True)
+  if not rom_size:
+    rom_size = cart.romSize(trust_header=True)
+    print('Detected ROM size: ' + str(rom_size))
+
   device.writeUint16(TIME_REGISTER, 0x0000)
   device.setAddr(0)
 
@@ -302,8 +305,10 @@ def main() -> None:
       help='Read the ROM from the cart to a file')
   read_rom_parser.add_argument('-o', '--output',
       help='Output file; default is derived from the ROM name on the cart')
+  read_rom_parser.add_argument('-s', '--size', type=int,
+      help='ROM size; if given, won\'t attempt to detect ROM size in the cart')
   read_rom_parser.set_defaults(
-      func=lambda args: readRom(args.port, args.output))
+      func=lambda args: readRom(args.port, args.output, args.size))
 
   write_rom_parser = subparsers.add_parser('write-rom',
       help='Write the ROM from a file to the cart')

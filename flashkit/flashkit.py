@@ -284,6 +284,21 @@ def writeRam(port: str, path: str) -> bool:
   return __verify(ram, ram2)
 
 
+def read16(port: str, addr: int) -> bool:
+  device = FlashKitDevice(port)
+  print('{:4x}'.format(device.readUint16(addr)))
+
+
+def write16(port: str, addr: int, value: int) -> bool:
+  device = FlashKitDevice(port)
+  device.writeUint16(addr, value)
+
+
+def write8(port: str, addr: int, value: int) -> bool:
+  device = FlashKitDevice(port)
+  device.writeUint8(addr, value)
+
+
 def main() -> None:
   parser = argparse.ArgumentParser(
       prog='flashkit',
@@ -330,6 +345,31 @@ def main() -> None:
       help='Input file; required')
   write_ram_parser.set_defaults(
       func=lambda args: writeRam(args.port, args.input))
+
+  read_16_parser = subparsers.add_parser('read-16',
+      help='Read a single word from a specific address to debug the cartridge')
+  read_16_parser.add_argument('-a', '--address', required=True, type=int,
+      help='The address')
+  read_16_parser.set_defaults(
+      func=lambda args: read16(args.port, args.address))
+
+  write_16_parser = subparsers.add_parser('write-16',
+      help='Write a single word to a specific address to debug the cartridge')
+  write_16_parser.add_argument('-a', '--address', required=True, type=int,
+      help='The address')
+  write_16_parser.add_argument('-v', '--value', required=True, type=int,
+      help='The word (16-bit value)')
+  write_16_parser.set_defaults(
+      func=lambda args: write16(args.port, args.address, args.value))
+
+  write_8_parser = subparsers.add_parser('write-8',
+      help='Write a single byte to a specific address to debug the cartridge')
+  write_8_parser.add_argument('-a', '--address', required=True, type=int,
+      help='The address')
+  write_8_parser.add_argument('-v', '--value', required=True, type=int,
+      help='The byte (8-bit value)')
+  write_8_parser.set_defaults(
+      func=lambda args: write8(args.port, args.address, args.value))
 
   args = parser.parse_args()
 

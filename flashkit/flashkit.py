@@ -141,7 +141,7 @@ def readRom(port: str, path: str, rom_size: int) -> bool:
 
   if not rom_size:
     rom_size = cart.romSize(trust_header=True)
-    print('Detected ROM size: ' + str(rom_size))
+    print('Detected ROM size: ' + __formatSize(rom_size))
 
   device.writeUint16(TIME_REGISTER, 0x0000)
   device.setAddr(0)

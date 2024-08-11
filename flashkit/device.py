@@ -82,7 +82,7 @@ class FlashChipNotFoundException(Exception):
     super().__init__(message)
 
 
-def buildCommand(*data_bytes) -> bytes:
+def buildCommand(*data_bytes: int) -> bytes:
   cmd = b''
   for data in data_bytes:
     cmd += (data & 0xff).to_bytes(1, 'big')

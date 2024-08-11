@@ -29,7 +29,7 @@ Functional improvements over the original:
 ## Installation
 
 ```
-python3 -m pip install --upgrade flashkit
+python3 -m pip install flashkit --upgrade
 ```
 
 

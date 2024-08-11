@@ -21,6 +21,7 @@ Functional improvements over the original:
  - Can tell the difference between ROM size and Flash chip size,
    avoiding oversized ROM dumps from flash carts
  - Uses CFI to establish successful communication with flash before writing
+   (saves time if something is very wrong with your cart)
  - Offers debug methods and arguments, which helped in the development of my
    own flash cart
 

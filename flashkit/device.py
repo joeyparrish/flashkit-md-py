@@ -82,6 +82,13 @@ class FlashChipNotFoundException(Exception):
     super().__init__(message)
 
 
+def buildCommand(*data_bytes) -> bytes:
+  cmd = b''
+  for data in data_bytes:
+    cmd += (data & 0xff).to_bytes(1, 'big')
+  return cmd
+
+
 class FlashKitDevice(object):
   device_path: str
   serial: serial.Serial
@@ -141,7 +148,8 @@ class FlashKitDevice(object):
     self.serial.close()
 
   def setDelay(self, delay: int) -> None:
-    self.__write2(CMD_DELAY, delay & 0xff)
+    self.serial.write(buildCommand(
+        CMD_DELAY, delay))
 
   def readUint16(self, addr: int) -> int:
     self.setAddr(addr)
@@ -164,9 +172,10 @@ class FlashKitDevice(object):
     while length > 0:
       read_bytes = min(length, IO_BLOCK_SIZE)
       read_words = read_bytes >> 1
-      self.__write2(CMD_LEN, read_words >> 8)
-      self.__write2(CMD_LEN, read_words)
-      self.__write1(CMD_RD | PAR_INC)
+      self.serial.write(buildCommand(
+          CMD_LEN, read_words >> 8,
+          CMD_LEN, read_words,
+          CMD_RD | PAR_INC))
 
       while read_bytes > 0:
         next_chunk = self.serial.read(read_bytes)
@@ -186,9 +195,10 @@ class FlashKitDevice(object):
     while length > 0:
       write_bytes = min(length, IO_BLOCK_SIZE)
       write_words = write_bytes >> 1
-      self.__write2(CMD_LEN, write_words >> 8)
-      self.__write2(CMD_LEN, write_words)
-      self.__write1(CMD_WR | PAR_INC)
+      self.serial.write(buildCommand(
+          CMD_LEN, write_words >> 8,
+          CMD_LEN, write_words,
+          CMD_WR | PAR_INC))
 
       end_offset = offset + write_bytes
       written = self.serial.write(data[offset:end_offset])
@@ -203,9 +213,10 @@ class FlashKitDevice(object):
 
   def setAddr(self, addr: int) -> None:
     addr >>= 1  # byte to word
-    self.__write2(CMD_ADDR, addr >> 16)
-    self.__write2(CMD_ADDR, addr >> 8)
-    self.__write2(CMD_ADDR, addr)
+    self.serial.write(buildCommand(
+        CMD_ADDR, addr >> 16,
+        CMD_ADDR, addr >> 8,
+        CMD_ADDR, addr))
 
   def flashErase(self, addr: int) -> None:
     self.writeUint16(0x555 * 2, 0xaa)
@@ -216,14 +227,16 @@ class FlashKitDevice(object):
 
     for i in range(8):
       self.setAddr(addr)
-      self.__write2(CMD_WR | PAR_SINGE | PAR_MODE8, 0x30)
+      self.serial.write(buildCommand(
+          CMD_WR | PAR_SINGE | PAR_MODE8, 0x30))
       addr += 8192
 
     self.flashRY()
 
   def flashRY(self) -> None:
     # Boy, I would love to know what this does.
-    self.__write2(CMD_RY, CMD_RD | PAR_SINGE)
+    self.serial.write(buildCommand(
+        CMD_RY, CMD_RD | PAR_SINGE))
     self.__read2()
 
   def flashUnlockBypass(self) -> None:
@@ -249,11 +262,12 @@ class FlashKitDevice(object):
     # of the programmer during a write cycle on a custom cartridge.
     cmd = b''
     for i in range(0, len(data), 2):
-      cmd += chr(CMD_WR | PAR_SINGE | PAR_MODE8).encode('utf8')
-      cmd += chr(0xA0).encode('utf8')
-      cmd += chr(CMD_WR | PAR_SINGE | PAR_INC).encode('utf8')
+      cmd += buildCommand(
+          CMD_WR | PAR_SINGE | PAR_MODE8,
+          0xA0,
+          CMD_WR | PAR_SINGE | PAR_INC)
       cmd += data[i:i + 2]
-      cmd += chr(CMD_RY).encode('utf8')
+      cmd += buildCommand(CMD_RY)
 
     self.serial.write(cmd)
 
@@ -265,18 +279,9 @@ class FlashKitDevice(object):
     int_val &= 0xff
     self.serial.write(int_val.to_bytes(1, 'big'))
 
-  def __write2(self, int_val1: int, int_val2: int) -> None:
-    int_val1 &= 0xff
-    int_val2 &= 0xff
-    int_val = (int_val1 << 8) | int_val2
-    self.__writeWord(int_val)
-
   def __writeWord(self, int_val: int) -> None:
     int_val &= 0xffff
     self.serial.write(int_val.to_bytes(2, 'big'))
-
-  def __read1(self) -> int:
-    return int.from_bytes(self.serial.read(1), 'big', signed=False)
 
   def __read2(self) -> int:
     return int.from_bytes(self.serial.read(2), 'big', signed=False)

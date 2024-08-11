@@ -103,7 +103,8 @@ class Cart(object):
 
     # I would love an explanation of this logic, too.  I ported it directly.
     # It appears to be some magic to understand the length of a ROM when
-    # bank-switching is in use.
+    # bank-switching is in use?  That may not make sense either, since it's
+    # always setting TIME_REGISTER to 0x0000...
     length = self.__checkRomSize(0, max_rom_size)
     if length == FOUR_MB:
       length = TWO_MB
@@ -119,7 +120,11 @@ class Cart(object):
       if length2 > HALF_MB:
         length += length2
 
-    if trust_header and rom_end_address < length:
+    # If you don't trust the header, the magic above can screw you over when
+    # you have repetitive data in your cart, such as quiet audio samples.
+    # You can easily see a repeat every 64kB at 2MB offset, for example, and
+    # call a 4MB ROM a 2MB ROM by the above logic.
+    if trust_header:
       return rom_end_address + 1
 
     return length

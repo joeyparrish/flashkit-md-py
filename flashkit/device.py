@@ -243,13 +243,19 @@ class FlashKitDevice(object):
     self.writeUint16(0, 0xf0)
 
   def flashWrite(self, data: bytes) -> None:
-    # NOTE: This is much simpler than the original, and does not suffer in
-    # speed.
+    # If we build the entire command and write it at once, everything is cool.
+    # The original code did it this way.  I tried to simplify it by writing
+    # each byte or word individually on self.serial, but that caused a lockup
+    # of the programmer during a write cycle on a custom cartridge.
+    cmd = b''
     for i in range(0, len(data), 2):
-      self.__write2(CMD_WR | PAR_SINGE | PAR_MODE8, 0xA0)
-      self.__write1(CMD_WR | PAR_SINGE | PAR_INC)
-      self.serial.write(data[i:i + 2])
-      self.__write1(CMD_RY)
+      cmd += chr(CMD_WR | PAR_SINGE | PAR_MODE8).encode('utf8')
+      cmd += chr(0xA0).encode('utf8')
+      cmd += chr(CMD_WR | PAR_SINGE | PAR_INC).encode('utf8')
+      cmd += data[i:i + 2]
+      cmd += chr(CMD_RY).encode('utf8')
+
+    self.serial.write(cmd)
 
   def __getID(self) -> int:
     self.__write1(CMD_RD | PAR_SINGE | PAR_DEV_ID)

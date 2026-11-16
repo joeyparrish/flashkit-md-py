@@ -233,6 +233,25 @@ class FlashKitDevice(object):
 
     self.flashRY()
 
+  def flashEraseSector(self, addr: int) -> None:
+    """Erase the single sector containing addr, with its own unlock sequence.
+
+    Unlike flashErase(), this does not rely on the chip accepting additional
+    queued sector-erase confirms, which some clone carts with bottom-boot flash
+    ignore.
+    """
+    self.writeUint16(0x555 * 2, 0xaa)
+    self.writeUint16(0x2aa * 2, 0x55)
+    self.writeUint16(0x555 * 2, 0x80)
+    self.writeUint16(0x555 * 2, 0xaa)
+    self.writeUint16(0x2aa * 2, 0x55)
+
+    self.setAddr(addr)
+    self.serial.write(buildCommand(
+        CMD_WR | PAR_SINGE | PAR_MODE8, 0x30))
+
+    self.flashRY()
+
   def flashRY(self) -> None:
     # Boy, I would love to know what this does.
     self.serial.write(buildCommand(

@@ -43,6 +43,14 @@ WRITE_BLOCK_SIZE =        (4 << 10)  #  4 kB
 ROM_SIZE_MULTIPLE =      (64 << 10)  # 64 kB
 FLASH_ERASE_BLOCK_SIZE = (64 << 10)  # 64 kB
 
+# Bottom-boot flash chips have small boot sectors (8 kB granularity or larger)
+# in the first 64 kB.  With --bottom-boot, each 8 kB step in this region is
+# erased with its own unlock sequence.  Erasing an address inside a larger
+# boot sector (e.g. 16 kB or 32 kB) just erases that sector again, which is
+# harmless.
+BOOT_REGION_SIZE =       (64 << 10)  # 64 kB
+BOOT_SECTOR_SIZE =        (8 << 10)  #  8 kB
+
 OPEN_EVERDRIVE_SIGNATURE = b"OPEN-EVERDRIVE"
 OPEN_EVERDRIVE_SIGNATURE_OFFSET = 0x120
 OPEN_EVERDRIVE_BANK_REGISTER = 0xA130E0
@@ -164,7 +172,43 @@ def readRom(port: str, path: str, rom_size: int) -> bool:
   return True
 
 
-def __writeRom(device: FlashKitDevice, path: str) -> bool:
+def __eraseFlash(device: FlashKitDevice, size: int, bottom_boot: bool) -> None:
+  start = 0
+
+  if bottom_boot:
+    boot_end = min(size, BOOT_REGION_SIZE)
+    for offset in range(0, boot_end, BOOT_SECTOR_SIZE):
+      progress = offset / size
+      print('\rFlash erase progress: {:.1f}%'.format(progress * 100), end='')
+      device.flashEraseSector(offset)
+    start = BOOT_REGION_SIZE
+
+  for offset in range(start, size, FLASH_ERASE_BLOCK_SIZE):
+    progress = offset / size
+    print('\rFlash erase progress: {:.1f}%'.format(progress * 100), end='')
+    device.flashErase(offset)
+
+  print('\rFlash erase complete!      ')
+
+
+def eraseRom(port: str, size: int, bottom_boot: bool) -> bool:
+  device = FlashKitDevice(port)
+  try:
+    device.setDelay(0)
+    device.checkForFlash()
+
+    if size % ROM_SIZE_MULTIPLE != 0:
+      size += ROM_SIZE_MULTIPLE - (size % ROM_SIZE_MULTIPLE)
+
+    print('Erasing {} of flash'.format(__formatSize(size)))
+    device.flashResetBypass()
+    __eraseFlash(device, size, bottom_boot)
+    return True
+  finally:
+    device.flashResetBypass()
+
+
+def __writeRom(device: FlashKitDevice, path: str, bottom_boot: bool) -> bool:
   device.setDelay(0)
   device.checkForFlash()
 
@@ -186,12 +230,7 @@ def __writeRom(device: FlashKitDevice, path: str) -> bool:
 
   device.flashResetBypass()
 
-  for offset in range(0, rom_size, FLASH_ERASE_BLOCK_SIZE):
-    progress = offset / rom_size
-    print('\rFlash erase progress: {:.1f}%'.format(progress * 100), end='')
-    device.flashErase(offset)
-
-  print('\rFlash erase complete!      ')
+  __eraseFlash(device, rom_size, bottom_boot)
 
   device.flashUnlockBypass()
   device.setAddr(0)
@@ -215,11 +254,11 @@ def __writeRom(device: FlashKitDevice, path: str) -> bool:
   return __verify(rom, rom2)
 
 
-def writeRom(port: str, path: str) -> bool:
+def writeRom(port: str, path: str, bottom_boot: bool = False) -> bool:
   # Separated error-handling from the work, for readability
   try:
     device = FlashKitDevice(port)
-    return __writeRom(device, path)
+    return __writeRom(device, path, bottom_boot)
   except Exception as e:
     try:
       device.flashResetBypass()
@@ -332,8 +371,22 @@ def main() -> None:
       help='Write the ROM from a file to the cart')
   write_rom_parser.add_argument('-i', '--input', required=True,
       help='Input file; required')
+  write_rom_parser.add_argument('--bottom-boot', action='store_true',
+      help='Erase each 8 kB boot sector in the first 64 kB separately, for '
+           'bottom-boot flash chips that ignore queued sector-erase commands')
   write_rom_parser.set_defaults(
-      func=lambda args: writeRom(args.port, args.input))
+      func=lambda args: writeRom(args.port, args.input, args.bottom_boot))
+
+  erase_rom_parser = subparsers.add_parser('erase-rom',
+      help='Erase the flash on the cart without writing')
+  erase_rom_parser.add_argument('-s', '--size', type=int, required=True,
+      help='Number of bytes to erase from the start of flash; rounded up to '
+           'a multiple of 64 kB; required')
+  erase_rom_parser.add_argument('--bottom-boot', action='store_true',
+      help='Erase each 8 kB boot sector in the first 64 kB separately, for '
+           'bottom-boot flash chips that ignore queued sector-erase commands')
+  erase_rom_parser.set_defaults(
+      func=lambda args: eraseRom(args.port, args.size, args.bottom_boot))
 
   read_ram_parser = subparsers.add_parser('read-ram',
       help='Read the RAM from the cart to a file')
